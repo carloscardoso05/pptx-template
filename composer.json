@@ -1,0 +1,30 @@
+{
+    "name": "carloscardoso05/pptx-template",
+    "description": "Biblioteca PHP para manipulação de templates PPTX com substituição de tags por texto e imagens",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "pptx",
+        "template",
+        "powerpoint",
+        "tags",
+        "qrcode",
+        "document-generation"
+    ],
+    "authors": [
+        {
+            "name": "Carlos Cardoso",
+            "email": "carloscardoso05@users.noreply.github.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "ext-zip": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "PptxTemplate\\": "src/"
+        }
+    },
+    "minimum-stability": "stable"
+}
