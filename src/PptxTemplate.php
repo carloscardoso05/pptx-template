@@ -3,29 +3,30 @@
 namespace PptxTemplate;
 
 use ZipArchive;
-use PptxTemplate\Exceptions\TemplateNotFoundException;
-use PptxTemplate\Exceptions\TagNotFoundException;
 
 /**
  * Classe principal para manipulação de templates PPTX
  */
 class PptxTemplate
 {
-    private string $templatePath;
-    private string $outputPath;
+    private string $templateData;
     private ZipArchive $zip;
     private TextReplacer $textReplacer;
     private ImageReplacer $imageReplacer;
 
-    public function __construct(string $templatePath)
+    private function __construct(string $templateData)
     {
-        if (!file_exists($templatePath)) {
-            throw new TemplateNotFoundException("Template não encontrado: {$templatePath}");
-        }
-
-        $this->templatePath = $templatePath;
+        $this->templateData = $templateData;
         $this->textReplacer = new TextReplacer();
         $this->imageReplacer = new ImageReplacer();
+    }
+
+    /**
+     * Cria uma instância a partir de dados binários do template
+     */
+    public static function fromData(string $templateData): self
+    {
+        return new self($templateData);
     }
 
     /**
@@ -34,20 +35,6 @@ class PptxTemplate
     public function setTextValues(array $values): self
     {
         $this->textReplacer->setValues($values);
-        return $this;
-    }
-
-    /**
-     * Adiciona imagem a partir de um arquivo
-     */
-    public function addImageFromFile(string $tag, string $filePath): self
-    {
-        if (!file_exists($filePath)) {
-            throw new \InvalidArgumentException("Arquivo de imagem não encontrado: {$filePath}");
-        }
-
-        $imageData = file_get_contents($filePath);
-        $this->imageReplacer->addImage($tag, $imageData);
         return $this;
     }
 
@@ -61,29 +48,35 @@ class PptxTemplate
     }
 
     /**
-     * Salva o arquivo PPTX processado
+     * Salva o arquivo PPTX processado e retorna os dados binários
      */
-    public function save(string $outputPath): void
+    public function saveToData(): string
     {
-        $this->outputPath = $outputPath;
-
-        // Copiar template
-        if (!copy($this->templatePath, $this->outputPath)) {
-            throw new \RuntimeException("Erro ao copiar template para: {$this->outputPath}");
-        }
-
-        // Abrir como ZipArchive
-        $this->zip = new ZipArchive();
-        if ($this->zip->open($this->outputPath) !== TRUE) {
-            throw new \RuntimeException("Erro ao abrir arquivo PPTX: {$this->outputPath}");
-        }
-
+        // Criar arquivo temporário para ZipArchive
+        $tempFile = tempnam(sys_get_temp_dir(), 'pptx_');
+        
         try {
+            // Escrever template no arquivo temporário
+            file_put_contents($tempFile, $this->templateData);
+
+            // Abrir como ZipArchive
+            $this->zip = new ZipArchive();
+            if ($this->zip->open($tempFile) !== TRUE) {
+                throw new \RuntimeException("Erro ao abrir arquivo PPTX");
+            }
+
             $this->processSlides();
             $this->zip->close();
-        } catch (\Exception $e) {
-            $this->zip->close();
-            throw $e;
+
+            // Ler dados processados
+            $outputData = file_get_contents($tempFile);
+            
+            return $outputData;
+        } finally {
+            // Limpar arquivo temporário
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
         }
     }
 
