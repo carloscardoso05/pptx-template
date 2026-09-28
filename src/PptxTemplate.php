@@ -54,6 +54,7 @@ class PptxTemplate
     {
         // Criar arquivo temporário para ZipArchive
         $tempFile = tempnam(sys_get_temp_dir(), 'pptx_');
+        $zipOpened = false;
         
         try {
             // Escrever template no arquivo temporário
@@ -64,15 +65,24 @@ class PptxTemplate
             if ($this->zip->open($tempFile) !== TRUE) {
                 throw new \RuntimeException("Erro ao abrir arquivo PPTX");
             }
+            $zipOpened = true;
 
             $this->processSlides();
+            
+            // Fechar o zip antes de ler os dados
             $this->zip->close();
+            $zipOpened = false;
 
             // Ler dados processados
             $outputData = file_get_contents($tempFile);
             
             return $outputData;
         } finally {
+            // Garantir que o ZipArchive seja fechado antes do unlink
+            if ($zipOpened && isset($this->zip)) {
+                $this->zip->close();
+            }
+            
             // Limpar arquivo temporário
             if (file_exists($tempFile)) {
                 unlink($tempFile);
